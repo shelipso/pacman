@@ -2,6 +2,8 @@ import pygame
 import random
 
 pygame.init()
+clock = pygame.time.Clock()
+last_key_time = pygame.time.get_ticks()
 
 WINDOW_SIZE = (600, 600)
 score = 0
@@ -10,14 +12,15 @@ pygame.display.set_caption("Pac-Man")
 
 BLOCK_SIZE = 20
 
-NUM_BLOCKS_WIDE = 20
-NUM_BLOCKS_HIGH = 20
+NUM_BLOCKS_WIDE = WINDOW_SIZE[0]/BLOCK_SIZE
+NUM_BLOCKS_HIGH = WINDOW_SIZE[1]/BLOCK_SIZE
 
 # Load textures
 wall_texture = pygame.image.load("wall_texture.png").convert()
 wall_texture = pygame.transform.scale(wall_texture, (BLOCK_SIZE, BLOCK_SIZE))
+
 dot_texture = pygame.Surface((BLOCK_SIZE, BLOCK_SIZE))
-dot_texture.fill(pygame.Color("yellow"))
+dot_texture.fill(pygame.Color("green"))
 
 # Generate random coordinates for walls
 WALL_COUNT = 5
@@ -68,10 +71,12 @@ for i in range(DOT_COUNT):
 
 
 # Initialize Pac-Man
-pacman_color = pygame.Color("yellow")
-pacman_radius = BLOCK_SIZE // 2
+
 pacman_rect = pygame.Rect(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
-pygame.draw.circle(screen, pacman_color, pacman_rect.center, pacman_radius)
+pacman_texture = pygame.image.load("pacman.png").convert()
+pacman_texture =pygame.transform.scale(pacman_texture, (BLOCK_SIZE, BLOCK_SIZE))
+
+
 
 # Initialize variables
 last_direction = None
@@ -79,6 +84,10 @@ move_event = pygame.USEREVENT + 1
 eat_event = pygame.USEREVENT + 2
 hit_wall_event = pygame.USEREVENT + 3
 stop_sound_event = pygame.USEREVENT + 4
+
+# Set a custom event to occur every 1000 milliseconds (1 second)
+TIMER_EVENT = pygame.USEREVENT + 5
+pygame.time.set_timer(TIMER_EVENT, 120)
 
 
 
@@ -145,24 +154,48 @@ def check_collision():
 clock = pygame.time.Clock()
 running = True
 
-while running:
-    clock.tick(60)
+key_down_active=False
 
+while running:
+    clock.tick(30)
+    
+    current_time = pygame.time.get_ticks()
+    
     for event in pygame.event.get():
+        
+        # Get the elapsed time since the last key press event
+        elapsed_time = current_time - last_key_time
+        
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT and last_direction != "right":
+            
+        elif event.type==pygame.KEYUP:
+                key_down_active=False
+
+        elif event.type == pygame.KEYDOWN  or key_down_active and elapsed_time>60:
+            
+            if event.type == pygame.KEYDOWN:
+                move_direction=event.key
+                key_down_active=True
+                
+            last_key_time =  current_time
+            
+            if move_direction == pygame.K_LEFT: #and last_direction != "right":
                 pacman_rect.move_ip(-BLOCK_SIZE, 0)
+                pacman_texture =pygame.transform.rotate(pacman_texture,0 )
                 last_direction = "left"
-            elif event.key == pygame.K_RIGHT and last_direction != "left":
+                
+            elif move_direction == pygame.K_RIGHT: #and last_direction != "left":
                 pacman_rect.move_ip(BLOCK_SIZE, 0)
+                pacman_texture =pygame.transform.rotate(pacman_texture,180 )
                 last_direction = "right"
-            elif event.key == pygame.K_UP and last_direction != "down":
+            elif move_direction == pygame.K_UP: #and last_direction != "down":
                 pacman_rect.move_ip(0, -BLOCK_SIZE)
+                pacman_texture =pygame.transform.rotate(pacman_texture,90 )
                 last_direction = "up"
-            elif event.key == pygame.K_DOWN and last_direction != "up":
+            elif move_direction == pygame.K_DOWN: #and last_direction != "up":
                 pacman_rect.move_ip(0, BLOCK_SIZE)
+                pacman_texture =pygame.transform.rotate(pacman_texture,270 )
                 last_direction = "down"
 
     check_collision()
@@ -177,8 +210,9 @@ while running:
         dot_rect = pygame.Rect(coordinate[0], coordinate[1], BLOCK_SIZE, BLOCK_SIZE)
         screen.blit(dot_texture, dot_rect)
         
-    pygame.draw.circle(screen, pacman_color, pacman_rect.center, pacman_radius)
-
+    pacman_texture =pygame.transform.scale(pacman_texture, (BLOCK_SIZE, BLOCK_SIZE))
+    screen.blit(pacman_texture, pacman_rect)
+    
     pygame.display.update()
 
 # Clean up
